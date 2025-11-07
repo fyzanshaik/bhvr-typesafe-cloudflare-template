@@ -33,11 +33,19 @@ app.use(
 );
 
 // Database middleware - attach db instance to context
+// D1 Version (current):
 app.use('*', async (c, next) => {
 	const db = createDb(c.env.DB);
 	c.set('db', db);
 	await next();
 });
+
+// PostgreSQL Version (uncomment when using PostgreSQL):
+// app.use('*', async (c, next) => {
+// 	const db = createDb(c.env.DATABASE_URL);
+// 	c.set('db', db);
+// 	await next();
+// });
 
 // Health check endpoint
 app.get('/', (c) => {

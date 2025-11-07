@@ -9,10 +9,26 @@
 Type-safe fullstack monorepo ready for production:
 
 -  ⚡ **Hono RPC** - Autocomplete API calls from frontend to backend
--  🗄️ **Drizzle + D1** - Type-safe SQL queries on Cloudflare's edge
+-  🗄️ **Drizzle ORM** - Type-safe SQL queries with **Cloudflare D1** (SQLite) or **PostgreSQL**
 -  🎨 **React + TanStack** - Router, Query, modern UI
 -  🚀 **Deploy anywhere** - Workers for backend, Pages for frontend
 -  📦 **Turborepo** - Fast builds, caching, parallel execution
+-  🔄 **Database Flexible** - Switch between D1 and PostgreSQL in ~30 mins ([guide](./docs/POSTGRESQL.md))
+
+## Database Options
+
+This template works with **both** Cloudflare D1 (SQLite) and PostgreSQL:
+
+| Database                    | Setup Time | Best For                            | Free Tier                                                                        |
+| --------------------------- | ---------- | ----------------------------------- | -------------------------------------------------------------------------------- |
+| **Cloudflare D1** (default) | 5 mins     | Global edge apps, simple CRUD       | 5M reads, 100K writes/day                                                        |
+| **PostgreSQL**              | 30 mins    | Complex queries, existing workflows | Provider-dependent ([Neon](https://neon.tech), [Supabase](https://supabase.com)) |
+
+**Currently configured:** Cloudflare D1 (SQLite)
+
+**Want PostgreSQL instead?** Follow the [PostgreSQL Migration Guide](./docs/POSTGRESQL.md) (~30 mins)
+
+> **Note:** All PostgreSQL code is already included as comments in the codebase. Just uncomment and swap!
 
 ## Quick Start
 
@@ -303,36 +319,40 @@ To enable automatic deployments, add these secrets to your repository:
 2. Click **New repository secret** and add:
 
 **`CLOUDFLARE_API_TOKEN`**
-- Go to [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens)
-- Click **Create Token**
-- Use template: **Edit Cloudflare Workers**
-- Or create custom token with permissions:
-  - Account > Workers Scripts > Edit
-  - Account > Account Settings > Read
-- Copy the token and add it as a secret
+
+-  Go to [Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens)
+-  Click **Create Token**
+-  Use template: **Edit Cloudflare Workers**
+-  Or create custom token with permissions:
+   -  Account > Workers Scripts > Edit
+   -  Account > Account Settings > Read
+-  Copy the token and add it as a secret
 
 **`CLOUDFLARE_ACCOUNT_ID`**
-- Go to [Workers & Pages](https://dash.cloudflare.com/) dashboard
-- Copy your Account ID from the right sidebar
-- Add it as a secret
+
+-  Go to [Workers & Pages](https://dash.cloudflare.com/) dashboard
+-  Copy your Account ID from the right sidebar
+-  Add it as a secret
 
 **Without these secrets, deployment will fail with:**
+
 ```
-✘ [ERROR] In a non-interactive environment, it's necessary to set a 
+✘ [ERROR] In a non-interactive environment, it's necessary to set a
 CLOUDFLARE_API_TOKEN environment variable for wrangler to work.
 ```
 
 **Frontend Deployment:**
 
 Connect your repo to Cloudflare Pages for automatic deployments (recommended):
+
 1. Go to [Cloudflare Pages](https://dash.cloudflare.com/pages)
 2. Click **Create a project** → **Connect to Git**
 3. Select your repository
 4. Build settings:
-   - **Build command:** `cd apps/frontend && bun install && bun run build`
-   - **Build output:** `apps/frontend/dist`
+   -  **Build command:** `cd apps/frontend && bun install && bun run build`
+   -  **Build output:** `apps/frontend/dist`
 5. Add environment variable:
-   - `VITE_API_URL` = `https://your-worker.workers.dev`
+   -  `VITE_API_URL` = `https://your-worker.workers.dev`
 
 ### Manual Deployment
 
@@ -383,6 +403,7 @@ bunx wrangler pages deploy dist --project-name=your-project-name
 
 ## Need More Context?
 
+-  **[docs/POSTGRESQL.md](./docs/POSTGRESQL.md)** - Complete guide to switch from D1 to PostgreSQL (~30 mins)
 -  **[AGENTS.md](./AGENTS.md)** - Complete context for AI agents working on this project (patterns, conventions, architecture, workflows)
 -  **[Cloudflare Docs](https://developers.cloudflare.com)** - Workers, Pages, D1 documentation
 -  **[Hono Docs](https://hono.dev)** - Web framework + RPC guide
