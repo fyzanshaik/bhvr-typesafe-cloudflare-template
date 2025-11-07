@@ -9,7 +9,8 @@ function RootComponent() {
   return (
     <>
       <Outlet />
-      <TanStackRouterDevtools position="bottom-right" />
+      {/* Only show devtools in development */}
+      {import.meta.env.DEV && <TanStackRouterDevtools position="bottom-right" />}
     </>
   );
 }

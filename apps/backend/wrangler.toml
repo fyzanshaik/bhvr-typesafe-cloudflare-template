@@ -7,7 +7,7 @@ compatibility_flags = ["nodejs_compat"]
 [dev]
 port = 8787
 
-# D1 Database binding
+# D1 Database binding (default for development)
 [[d1_databases]]
 binding = "DB"
 database_name = "cloudflare-d1-db"
@@ -22,10 +22,17 @@ ENVIRONMENT = "development"
 [build]
 command = ""
 
-# Production environment variables (optional)
+# Production environment
 [env.production]
 name = "cloudflare-fullstack-backend-prod"
 
 [env.production.vars]
 ENVIRONMENT = "production"
+
+# Production D1 database
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "cloudflare-d1-db"
+database_id = "e81c3f3f-1e11-4309-aca6-31abd3cf1948"
+migrations_dir = "migrations"
 

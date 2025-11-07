@@ -6,10 +6,10 @@
   "scripts": {
     "dev": "wrangler dev",
     "build": "tsc && wrangler deploy --dry-run",
-    "deploy": "wrangler deploy",
+    "deploy": "wrangler deploy --env production",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply cloudflare-d1-db --local",
-    "db:migrate:prod": "wrangler d1 migrations apply cloudflare-d1-db --remote",
+    "db:migrate:prod": "wrangler d1 migrations apply cloudflare-d1-db --env production --remote",
     "db:seed": "bun run src/scripts/seed.ts",
     "type-check": "tsc --noEmit"
   },

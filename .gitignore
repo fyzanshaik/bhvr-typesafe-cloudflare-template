@@ -18,6 +18,8 @@ out/
 # Environment variables
 .env
 .env*.local
+.env.production
+.env.development
 .dev.vars
 
 # Debug

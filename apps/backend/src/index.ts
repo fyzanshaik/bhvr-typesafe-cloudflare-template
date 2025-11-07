@@ -14,10 +14,20 @@ const app = new Hono<{ Bindings: Env; Variables: HonoVariables }>();
 // Middleware
 app.use('*', logger());
 app.use('*', prettyJSON());
+
+// CORS - Allow requests from frontend
 app.use(
   '*',
   cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000'], // Add your frontend URLs
+    origin: (origin) => {
+      // Allow localhost for development
+      if (origin.includes('localhost')) return origin;
+      // Allow Cloudflare Pages domains
+      if (origin.endsWith('.pages.dev')) return origin;
+      // Allow custom domains (add yours here)
+      // if (origin === 'https://yourdomain.com') return origin;
+      return origin; // Allow all origins (remove in production if needed)
+    },
     credentials: true,
   })
 );
