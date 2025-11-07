@@ -63,6 +63,32 @@ bun dev
 
 Visit **http://localhost:5173** 🎉
 
+## 🔐 GitHub Actions Setup (Required for Auto-Deployment)
+
+**Skip this if:** You plan to deploy manually via CLI only.
+
+**Required if:** You want automatic deployments when pushing to `main` branch.
+
+To enable GitHub Actions auto-deployment, add two secrets to your repository:
+
+### Quick Setup:
+
+1. **Go to your GitHub repo** → **Settings** → **Secrets and variables** → **Actions**
+2. Click **"New repository secret"** and add both:
+
+| Secret Name | How to Get It | Purpose |
+|-------------|---------------|---------|
+| `CLOUDFLARE_API_TOKEN` | [Create at dash.cloudflare.com](https://dash.cloudflare.com/profile/api-tokens) → Use template **"Edit Cloudflare Workers"** | Allows GitHub to deploy your Worker |
+| `CLOUDFLARE_ACCOUNT_ID` | [Find in Workers dashboard](https://dash.cloudflare.com) → Copy from right sidebar | Identifies your Cloudflare account |
+
+**Without these secrets, your GitHub Actions deployment will fail with:**
+```
+✘ [ERROR] In a non-interactive environment, it's necessary to set a 
+CLOUDFLARE_API_TOKEN environment variable for wrangler to work.
+```
+
+See detailed instructions in the [CI/CD section](#cicd) below.
+
 ## Development Workflow
 
 ### Want to add a new API endpoint?
@@ -296,9 +322,11 @@ chmod +x .git/hooks/pre-commit
 
 Or use your preferred tool: [husky](https://typicode.github.io/husky/), [lefthook](https://github.com/evilmartians/lefthook), etc.
 
-## CI/CD
+## CI/CD {#cicd}
 
 ### Automated Workflows (GitHub Actions)
+
+**⚠️ Important:** Before GitHub Actions can deploy, you must add repository secrets. [Jump to Quick Setup](#-github-actions-setup-required-for-auto-deployment) if you haven't done this yet.
 
 **`.github/workflows/ci.yml`** - Runs on every PR and push to main:
 
@@ -310,8 +338,11 @@ Or use your preferred tool: [husky](https://typicode.github.io/husky/), [lefthoo
 
 -  Triggers on push to main when backend files change
 -  Builds and deploys to Cloudflare Workers
+-  **Requires:** `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets
 
-#### Setup GitHub Actions Secrets
+### Setup GitHub Actions Secrets (Detailed)
+
+> **Quick setup instructions are [here](#-github-actions-setup-required-for-auto-deployment)**
 
 To enable automatic deployments, add these secrets to your repository:
 
