@@ -24,7 +24,7 @@ command = ""
 
 # Production environment
 [env.production]
-name = "cloudflare-fullstack-backend-prod"
+name = "cloudflare-fullstack-backend"
 
 [env.production.vars]
 ENVIRONMENT = "production"
