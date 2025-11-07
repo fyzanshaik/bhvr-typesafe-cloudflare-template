@@ -1,0 +1,10 @@
+# Cloudflare Pages configuration (optional, can also be configured via dashboard)
+name = "cloudflare-fullstack-frontend"
+compatibility_date = "2024-11-07"
+
+# Pages configuration
+pages_build_output_dir = "dist"
+
+[env.production]
+name = "cloudflare-fullstack-frontend-prod"
+

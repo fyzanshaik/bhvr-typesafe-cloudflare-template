@@ -1,0 +1,6 @@
+# Example environment variables for local development
+# Copy this to .dev.vars for local testing
+
+# Note: D1 binding is configured in wrangler.toml
+# This file is for additional secrets/variables if needed
+
