@@ -15,7 +15,9 @@ const demoUsers = [
 console.log('🌱 Demo seed data for users:');
 console.log('');
 demoUsers.forEach((user, i) => {
-	console.log(`bunx wrangler d1 execute cloudflare-d1-db --local --command "INSERT INTO users (name, email) VALUES ('${user.name}', '${user.email}')"`);
+	console.log(
+		`bunx wrangler d1 execute cloudflare-d1-db --local --command "INSERT INTO users (name, email) VALUES ('${user.name}', '${user.email}')"`
+	);
 });
 
 export { demoUsers };

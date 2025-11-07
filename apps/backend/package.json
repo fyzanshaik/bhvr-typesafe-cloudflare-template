@@ -1,29 +1,29 @@
 {
-  "name": "@repo/backend",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "wrangler dev",
-    "build": "tsc && wrangler deploy --dry-run",
-    "deploy": "wrangler deploy --env production",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "wrangler d1 migrations apply cloudflare-d1-db --local",
-    "db:migrate:prod": "wrangler d1 migrations apply cloudflare-d1-db --env production --remote",
-    "db:seed": "bun run src/scripts/seed.ts",
-    "type-check": "tsc --noEmit"
-  },
-  "dependencies": {
-    "hono": "^4.6.14",
-    "@hono/zod-validator": "^0.7.4",
-    "drizzle-orm": "^0.44.7",
-    "@repo/db": "workspace:*",
-    "@repo/shared": "workspace:*"
-  },
-  "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241127.0",
-    "wrangler": "^4.46.0",
-    "drizzle-kit": "^0.31.6",
-    "typescript": "^5.6.3"
-  }
+	"name": "@repo/backend",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "wrangler dev",
+		"build": "tsc && wrangler deploy --dry-run",
+		"deploy": "wrangler deploy --env production",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "wrangler d1 migrations apply cloudflare-d1-db --local",
+		"db:migrate:prod": "wrangler d1 migrations apply cloudflare-d1-db --env production --remote",
+		"db:seed": "bun run src/scripts/seed.ts",
+		"type-check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"hono": "^4.6.14",
+		"@hono/zod-validator": "^0.7.4",
+		"drizzle-orm": "^0.44.7",
+		"@repo/db": "workspace:*",
+		"@repo/shared": "workspace:*"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20241127.0",
+		"wrangler": "^4.46.0",
+		"drizzle-kit": "^0.31.6",
+		"typescript": "^5.6.3"
+	}
 }

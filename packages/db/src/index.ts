@@ -9,8 +9,7 @@ export { schema };
  * @param db - D1Database instance from Cloudflare Workers
  */
 export function createDb(db: D1Database) {
-  return drizzle(db, { schema });
+	return drizzle(db, { schema });
 }
 
 export type DbInstance = ReturnType<typeof createDb>;
-

@@ -1,7 +1,7 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { users } from '@repo/db/schema';
-import { ApiResponse, createUserSchema } from '@repo/shared';
+import { type ApiResponse, createUserSchema } from '@repo/shared';
+import { Hono } from 'hono';
 import type { Env, HonoVariables } from '../types';
 
 const api = new Hono<{ Bindings: Env; Variables: HonoVariables }>();

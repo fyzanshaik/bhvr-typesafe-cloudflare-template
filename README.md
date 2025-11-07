@@ -1,376 +1,355 @@
-# 🦫 bhvr - Cloudflare Fullstack Monorepo
+# 🦫 bhvr - Cloudflare Fullstack Template
 
-A minimal, type-safe fullstack monorepo template for Cloudflare. Built with **Bun + Hono + Vite + React**.
+> Fork this. Build your app. Deploy to the edge. Type-safe from database to UI.
 
-## ✨ Features
+**[Live Demo](https://your-demo.pages.dev)** • **[AI Guide](./AGENTS.md)**
 
--  ⚡ **End-to-end type safety** - Frontend to backend to database
--  🚀 **Edge-first** - Deploy on Cloudflare Workers & Pages
--  📦 **Turborepo** - Optimized monorepo builds
--  🗄️ **D1 Database** - SQLite at the edge with Drizzle ORM
--  🎨 **Modern UI** - React + Vite + Tailwind CSS + Shadcn UI
--  🔄 **Hono RPC** - Type-safe API calls with autocomplete
--  📱 **TanStack Stack** - Router + Query for seamless data flow
+## What You Get
 
-## 🏗️ Structure
+Type-safe fullstack monorepo ready for production:
 
-```
-├── apps/
-│   ├── backend/          # Hono API (Cloudflare Workers)
-│   └── frontend/         # React + Vite (Cloudflare Pages)
-├── packages/
-│   ├── db/              # Drizzle schema & types
-│   └── shared/          # Zod schemas & shared types
-└── package.json         # Turborepo workspace
-```
+-  ⚡ **Hono RPC** - Autocomplete API calls from frontend to backend
+-  🗄️ **Drizzle + D1** - Type-safe SQL queries on Cloudflare's edge
+-  🎨 **React + TanStack** - Router, Query, modern UI
+-  🚀 **Deploy anywhere** - Workers for backend, Pages for frontend
+-  📦 **Turborepo** - Fast builds, caching, parallel execution
 
-## 🚀 Quick Start
+## Quick Start
 
-### Prerequisites
-
--  [Bun](https://bun.sh) >= 1.0
-
-### Local Development
+### 1. Install & Setup
 
 ```bash
+# Clone your fork
+git clone <your-fork>
+cd bhvr-cloudflare-d1
+
 # Install dependencies
 bun install
 
-# Setup database
-cd apps/backend
-bun run db:generate
-bun run db:migrate
+# Run interactive setup (creates DB, updates config, applies migrations)
+bun run setup
+```
 
-# Seed demo data
-bunx wrangler d1 execute cloudflare-d1-db --local --command "INSERT INTO users (name, email) VALUES ('Alice', 'alice@example.com')"
-bunx wrangler d1 execute cloudflare-d1-db --local --command "INSERT INTO users (name, email) VALUES ('Bob', 'bob@example.com')"
+**What `setup` does:**
 
-# Start dev servers (from root)
-cd ../..
+1. ✓ Checks Bun installed
+2. ✓ Verifies Cloudflare authentication (`wrangler login`)
+3. ✓ Creates D1 database in your Cloudflare account
+4. ✓ Updates `wrangler.toml` with production database ID
+5. ✓ Applies database migrations locally
+6. ✓ Seeds demo data
+
+### 2. Start Development
+
+```bash
 bun dev
 ```
 
-Visit:
+Visit **http://localhost:5173** 🎉
 
--  Frontend: http://localhost:5173
--  Backend: http://localhost:8787
+## Development Workflow
 
-## 📚 API Routes
+### Want to add a new API endpoint?
 
--  `GET /` - Health check
--  `GET /api/hello` - Hello world
--  `GET /api/users` - Get all users
--  `POST /api/users` - Create a new user
+**Example: Add a "posts" feature**
 
-### Example: Create User
+#### Step 1: Define Schema
 
-```bash
-curl -X POST http://localhost:8787/api/users \
-  -H "Content-Type: application/json" \
-  -d '{"name": "John Doe", "email": "john@example.com"}'
+**`packages/db/src/schema.ts`**
+
+```typescript
+export const posts = sqliteTable('posts', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	title: text('title').notNull(),
+	content: text('content').notNull(),
+	userId: integer('user_id').references(() => users.id),
+	createdAt: integer('created_at', { mode: 'timestamp' })
+		.notNull()
+		.default(sql`(unixepoch())`),
+});
+
+export type Post = typeof posts.$inferSelect;
+export type NewPost = typeof posts.$inferInsert;
 ```
 
-## 🗄️ Database
+#### Step 2: Create Validation
 
-### Schema
+**`packages/shared/src/schemas.ts`**
 
-**Users Table:**
+```typescript
+export const createPostSchema = z.object({
+	title: z.string().min(1).max(200),
+	content: z.string().min(1),
+	userId: z.number().int().positive(),
+});
 
--  `id` - Integer (Primary Key)
--  `name` - Text
--  `email` - Text (Unique)
--  `createdAt` - Timestamp
--  `updatedAt` - Timestamp
+export type CreatePostInput = z.infer<typeof createPostSchema>;
+```
 
-### Migrations
-
-**⚠️ IMPORTANT: Never delete migrations that have been applied to production!**
+#### Step 3: Generate Migration
 
 ```bash
-# 1. Make changes to packages/db/src/schema.ts
-
-# 2. Generate a NEW migration (don't delete old ones!)
 cd apps/backend
-bun run db:generate
+bun run db:generate  # Creates migration file
+bun run db:migrate   # Applies to local DB
+```
 
-# 3. Apply locally
+#### Step 4: Add API Handler
+
+**`apps/backend/src/routes/api.ts`**
+
+```typescript
+import { posts } from '@repo/db/schema';
+import { createPostSchema } from '@repo/shared';
+
+api.get('/posts', async (c) => {
+	const db = c.get('db');
+	const allPosts = await db.select().from(posts).all();
+	return c.json({ success: true, data: allPosts });
+});
+
+api.post('/posts', zValidator('json', createPostSchema), async (c) => {
+	const db = c.get('db');
+	const data = c.req.valid('json');
+	const result = await db.insert(posts).values(data).returning().get();
+	return c.json({ success: true, data: result }, 201);
+});
+```
+
+#### Step 5: Use in Frontend
+
+**`apps/frontend/src/routes/posts.tsx`**
+
+```typescript
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/lib/api';
+
+function PostsPage() {
+	const { data } = useQuery({
+		queryKey: ['posts'],
+		queryFn: async () => {
+			const res = await apiClient.api.posts.$get(); // ← Fully typed!
+			return res.json();
+		},
+	});
+
+	// Use data.data (it's typed as Post[])
+}
+```
+
+**That's it!** Types flow automatically: `DB → Backend → Frontend`
+
+### Want to change the database?
+
+```bash
+# 1. Edit packages/db/src/schema.ts (add/modify tables)
+# 2. Generate migration
+cd apps/backend && bun run db:generate
+
+# 3. Review the SQL
+cat migrations/0001_*.sql
+
+# 4. Apply locally
 bun run db:migrate
 
-# 4. Test thoroughly
+# 5. Test your changes
+cd ../.. && bun dev
 
-# 5. Apply to production
-bun run db:migrate:prod
+# 6. Deploy to production (when ready)
+cd apps/backend && bun run db:migrate:prod
 ```
 
-#### Fresh Start (Development Only)
+**⚠️ Never delete old migrations once applied to production!**
 
-If you need to start over with a clean database (⚠️ deletes all data):
-
-```bash
-# Local
-cd apps/backend
-rm -rf .wrangler/state/v3/d1  # Delete local DB
-bun run db:migrate             # Reapply all migrations
-
-# Production (only if safe to delete data)
-# Create new D1 database and update wrangler.toml
-bunx wrangler d1 create cloudflare-d1-db-new
-# Then update database_id in wrangler.toml
-```
-
-## 🚢 Deployment
+## Deployment
 
 ### Backend (Cloudflare Workers)
 
 ```bash
 cd apps/backend
 
-# Login (first time)
-bunx wrangler login
+# Apply database migrations to production (first time or after schema changes)
+bun run db:migrate:prod
 
-# Create production D1 database (first time)
-bunx wrangler d1 create cloudflare-d1-db
-# Copy the database_id to wrangler.toml [env.production.d1_databases]
-
-# Deploy
+# Deploy the Worker
 bun run deploy
 ```
 
+Your API is live at `https://your-worker.workers.dev`
+
 ### Frontend (Cloudflare Pages)
 
-#### Option 1: Git Integration (Recommended)
+**Option A: Git Integration (Recommended)**
 
 1. Push to GitHub
-2. Connect repo in Cloudflare Pages dashboard
-3. Build settings:
-   -  **Command:** `cd apps/frontend && bun install && bun run build`
-   -  **Output:** `apps/frontend/dist`
-4. Set environment variable:
+2. Go to [Cloudflare Pages](https://dash.cloudflare.com/pages)
+3. Connect repository
+4. Build settings:
+   -  **Build command:** `cd apps/frontend && bun install && bun run build`
+   -  **Build output:** `apps/frontend/dist`
+5. Environment variable:
    -  `VITE_API_URL` = `https://your-worker.workers.dev`
 
-#### Option 2: Direct Upload
+**Option B: CLI Deploy**
 
 ```bash
 cd apps/frontend
 bun run build
-bunx wrangler pages deploy dist --project-name=your-project-name
+bunx wrangler pages deploy dist --project-name=bhvr-frontend
 ```
 
-## 🛠️ Development
+## Project Structure
 
-### Commands
+```
+apps/
+├── backend/          # Hono API → Cloudflare Workers
+│   ├── src/routes/   # API endpoints
+│   ├── migrations/   # Database migrations (auto-generated)
+│   └── wrangler.toml # Worker configuration
+│
+└── frontend/         # React SPA → Cloudflare Pages
+    ├── src/routes/   # TanStack Router pages
+    ├── src/lib/api.ts # Hono RPC client (type-safe!)
+    └── src/components/ # React components
+
+packages/
+├── db/               # Drizzle schema shared between apps
+│   └── src/schema.ts # Table definitions → types flow from here
+│
+└── shared/           # Zod schemas & types shared between apps
+    ├── src/schemas.ts # Request validation
+    └── src/types.ts   # Shared TypeScript types
+```
+
+## Commands
 
 ```bash
-# Root
-bun dev                   # Start all apps
-bun build                 # Build all apps
-bun run type-check        # Type check all packages
+# Development
+bun dev              # Start all apps (frontend + backend)
+bun run type-check   # Check types across monorepo
+bun run lint         # Lint with Biome
+bun run lint:fix     # Auto-fix linting issues
+bun run format       # Format code with Biome
 
-# Backend
+# Database
 cd apps/backend
-bun dev                   # Start backend only
-bun run deploy            # Deploy to production
+bun run db:generate  # Generate migration from schema changes
+bun run db:migrate   # Apply migrations locally
+bun run db:migrate:prod # Apply to production
 
-# Frontend
+# Deployment
+cd apps/backend && bun run deploy      # Deploy backend
+cd apps/frontend && bun run build      # Build frontend
+```
+
+## Adding UI Components
+
+```bash
 cd apps/frontend
-bun dev                   # Start frontend only
-bun run build             # Build for production
+bunx --bun shadcn@latest add button
+bunx --bun shadcn@latest add dialog
+# See https://ui.shadcn.com for all components
 ```
 
-### Adding Shadcn Components
+## Code Quality
+
+### Biome (Linting + Formatting)
+
+Configured in `biome.json` - fast, all-in-one toolchain:
 
 ```bash
-cd apps/frontend
-bunx --bun shadcn@latest add [component-name]
+bun run lint         # Check for issues
+bun run lint:fix     # Fix auto-fixable issues
+bun run format       # Format all code
+bun run type-check   # TypeScript type checking
 ```
 
-## 🔑 Environment Variables
+### Optional: Git Hooks
 
-### Local Development
-
-No environment files needed! Wrangler handles D1 automatically.
-
-### Production
-
-**Backend:** Configure in `wrangler.toml`
-
-```toml
-[[env.production.d1_databases]]
-database_id = "your-production-db-id"
-```
-
-**Frontend:** Set in Cloudflare Pages dashboard
-
-```
-VITE_API_URL=https://your-worker.workers.dev
-```
-
-## 🎯 How It Works
-
-### Type-Safe API Calls
-
-```typescript
-// Frontend automatically knows backend types!
-const response = await apiClient.api.users.$get();
-const data = await response.json();
-// data is fully typed ✨
-```
-
-### Database Queries
-
-```typescript
-// Backend has full type safety with Drizzle
-const users = await db.select().from(users).all();
-// users is User[] ✨
-```
-
-### Validation
-
-```typescript
-// Shared Zod schemas work on both frontend and backend
-const userData = createUserSchema.parse(input);
-// Validated at runtime ✨
-```
-
-## 📦 Tech Stack
-
-| Layer      | Technology                            |
-| ---------- | ------------------------------------- |
-| Frontend   | React 18, Vite, TanStack Router/Query |
-| Backend    | Hono, Cloudflare Workers              |
-| Database   | Cloudflare D1, Drizzle ORM            |
-| Styling    | Tailwind CSS v4, Shadcn UI            |
-| State      | Zustand                               |
-| Validation | Zod                                   |
-| Monorepo   | Turborepo, Bun                        |
-
-## 🐛 Troubleshooting
-
-### CORS Errors
-
-Backend CORS is configured to accept:
-
--  All `localhost` ports (development)
--  All `.pages.dev` domains (Cloudflare Pages)
-
-If you still get CORS errors, update `apps/backend/src/index.ts`:
-
-```typescript
-cors({
-	origin: (origin) => {
-		if (origin.includes('localhost')) return origin;
-		if (origin.endsWith('.pages.dev')) return origin;
-		if (origin === 'https://yourdomain.com') return origin; // Add custom domain
-		return origin;
-	},
-	credentials: true,
-});
-```
-
-### Migration Error: "table already exists"
-
-**Cause:** You regenerated migrations (changed migration filenames) after already applying them to production.
-
-**Local Fix:**
-```bash
-cd apps/backend
-rm -rf .wrangler/state/v3/d1  # Delete local database
-bun run db:migrate             # Apply fresh migration
-```
-
-**Production Fix (if you already have data):**
-
-⚠️ **Don't regenerate migrations in production!** Instead:
-
-1. Check what tables exist in production vs. your new schema
-2. Manually align the migration tracking table
-3. Create new migrations for any differences going forward
-
-**Better Approach:** Don't delete old migrations! Create new ones to make changes:
+Want to run checks before commits? Add a pre-commit hook:
 
 ```bash
-# ✅ CORRECT: Create new migration to drop a table
-cd apps/backend
-# Edit schema.ts to remove the table
-bun run db:generate  # Creates 0001_*.sql
-bun run db:migrate   # Local
-bun run db:migrate:prod  # Production - works smoothly!
+# Create .git/hooks/pre-commit
+cat > .git/hooks/pre-commit << 'EOF'
+#!/bin/sh
+bun run lint:fix && bun run type-check
+EOF
 
-# ❌ WRONG: Delete migrations folder and regenerate
-rm -rf migrations  # Don't do this if already in production!
+chmod +x .git/hooks/pre-commit
 ```
 
-### Database Empty After Migration
+Or use your preferred tool: [husky](https://typicode.github.io/husky/), [lefthook](https://github.com/evilmartians/lefthook), etc.
 
-Check migrations were applied:
+## CI/CD
+
+### Automated Workflows (GitHub Actions)
+
+**`.github/workflows/ci.yml`** - Runs on every PR and push to main:
+
+-  ✓ Installs dependencies
+-  ✓ Runs linting (`bun run lint`)
+-  ✓ Runs type checking (`bun run type-check`)
+
+**`.github/workflows/deploy-backend.yml`** - Auto-deploys backend:
+
+-  Triggers on push to main when backend files change
+-  Builds and deploys to Cloudflare Workers
+-  **Setup:** Add secrets in repo settings:
+   -  `CLOUDFLARE_API_TOKEN` - Create at dash.cloudflare.com/profile/api-tokens
+   -  `CLOUDFLARE_ACCOUNT_ID` - Found in Workers dashboard
+
+**Frontend:** Connect repo to Cloudflare Pages for automatic deployments (recommended)
+
+### Manual Deployment
+
+If you prefer manual control, disable GitHub Actions and deploy via CLI:
 
 ```bash
-cd apps/backend
-bunx wrangler d1 migrations list cloudflare-d1-db --local
+cd apps/backend && bun run deploy
+cd apps/frontend && bunx wrangler pages deploy dist
 ```
 
-### Type Errors
+## Type Safety Flow
 
-Rebuild workspace:
-
-```bash
-bun install
-bun run type-check
+```
+┌─────────────────────────────────────────────────────────┐
+│  packages/db/schema.ts                                  │
+│  Define: export const users = sqliteTable(...)          │
+│  Types: export type User = typeof users.$inferSelect    │
+│                           ↓                             │
+│  apps/backend/routes/api.ts                             │
+│  Query: const users = await db.select().from(users)     │
+│  Return: c.json({ data: users })  // users is User[]    │
+│                           ↓                             │
+│  Hono RPC (automatic type inference)                    │
+│                           ↓                             │
+│  apps/frontend/routes/index.tsx                         │
+│  Call: const res = await apiClient.api.users.$get()     │
+│  Use: res.json().data  // Typed as User[]! ✨           │
+└─────────────────────────────────────────────────────────┘
 ```
 
-## 💰 Cloudflare Free Tier
+## Tech Stack
 
--  Workers: 100,000 requests/day
--  Pages: Unlimited requests
--  D1: 5M reads/day, 100K writes/day
+| Layer      | Technology                                |
+| ---------- | ----------------------------------------- |
+| Frontend   | React 18, Vite, TanStack Router/Query     |
+| Backend    | Hono, Cloudflare Workers                  |
+| Database   | Cloudflare D1 (SQLite), Drizzle ORM       |
+| Styling    | Tailwind CSS v4, Shadcn UI                |
+| State      | TanStack Query (server), Zustand (client) |
+| Validation | Zod                                       |
+| Monorepo   | Turborepo, Bun                            |
+| Deployment | Cloudflare Pages + Workers + D1           |
 
-Perfect for side projects and MVPs!
+## Need More Context?
 
-## 📖 Migration Best Practices
+-  **[AGENTS.md](./AGENTS.md)** - Complete guide for AI assistants (patterns, conventions, architecture)
+-  **[Cloudflare Docs](https://developers.cloudflare.com)** - Workers, Pages, D1 documentation
+-  **[Hono Docs](https://hono.dev)** - Web framework + RPC guide
+-  **[Drizzle Docs](https://orm.drizzle.team)** - ORM and query builder
+-  **[TanStack Docs](https://tanstack.com)** - Router and Query
 
-### Golden Rules
+## License
 
-1. **Never delete applied migrations** - Migrations are append-only
-2. **Test locally first** - Always apply to local DB before production
-3. **One-way street** - Migrations should only move forward
-4. **Add rollback scripts** - For complex changes, have a backup plan
-
-### Example Workflow
-
-```bash
-# ✅ Correct: Adding a new column
-# 1. Edit schema
-echo "age: integer('age')" >> packages/db/src/schema.ts
-
-# 2. Generate NEW migration (0001_*.sql)
-cd apps/backend && bun run db:generate
-
-# 3. Review the generated SQL
-cat migrations/0001_*.sql
-
-# 4. Test locally
-bun run db:migrate
-
-# 5. Deploy to production
-bun run db:migrate:prod
-```
-
-### Migration Files Are Sacred
-
-- ✅ Keep all migration files in version control
-- ✅ Migrations should be sequential (0000, 0001, 0002...)
-- ❌ Never modify an applied migration
-- ❌ Never delete migration files in production
-- ❌ Never regenerate all migrations
-
-## 📝 License
-
-MIT
-
-## 🤝 Contributing
-
-Feel free to fork and customize for your needs!
-
----
-
-Built with ❤️ using Cloudflare's edge platform
+MIT - Fork it, build something awesome! 🚀

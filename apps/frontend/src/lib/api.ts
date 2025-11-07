@@ -9,4 +9,3 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
  * Provides full end-to-end type safety between frontend and backend
  */
 export const apiClient = hc<AppType>(API_URL);
-
