@@ -22,4 +22,38 @@
 	--color-input: #e4e4e7;
 	--color-ring: #18181b;
 	--radius: 0.5rem;
+
+	/* Custom animations */
+	--animate-fade-in: fade-in 0.3s ease-in;
+	--animate-bounce-slow: bounce-slow 2s ease-in-out infinite;
+}
+
+/* Background grid pattern for hero section */
+@layer utilities {
+	.bg-grid-white {
+		background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+			linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+	}
+}
+
+/* Custom animations */
+@keyframes fade-in {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes bounce-slow {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-10px);
+	}
 }
